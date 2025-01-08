@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"TinyWiny/app/storage"
+	"TinyWiny/storage"
 )
 
 func TestShortenURLHandler(t *testing.T) {
