@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -10,12 +11,21 @@ import (
 
 var rdb *redis.Client
 
-// Initialize Redis client
 func InitRedis() {
+	// Get Redis host and port from environment variables
+	redisHost := os.Getenv("REDIS_HOST")
+	redisPort := os.Getenv("REDIS_PORT")
+
+	if redisHost == "" || redisPort == "" {
+		log.Fatalf("Environment variabels REDIS_HOST or REDIS_PORT are not set")
+	}
+
+	// Connect to Redis
 	rdb = redis.NewClient(&redis.Options{
-		Addr: "localhost:6379", // Redis address
+		Addr: redisHost + ":" + redisPort,
 	})
 
+	// Test the connection
 	if _, err := rdb.Ping(context.Background()).Result(); err != nil {
 		log.Fatalf("Could not connect to Redis: %v", err)
 	}
