@@ -1,8 +1,8 @@
 package main
 
 import (
-	"TinyWiny/handlers"
-	"TinyWiny/storage"
+    "TinyWiny/app/handlers"
+    "TinyWiny/app/storage"
 	"fmt"
 	"log"
 	"net/http"
