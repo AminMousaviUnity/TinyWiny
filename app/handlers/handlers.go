@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"TinyWiny/storage"
+	"TinyWiny/app/storage"
 	"encoding/json"
 	"net/http"
 )
