@@ -1,6 +1,6 @@
 # Binaries for programs and plugins
 # Redis data files
-data/
+./data/
 
 # Logs and databases
 *.log
