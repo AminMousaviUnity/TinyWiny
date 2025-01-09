@@ -29,7 +29,7 @@ func ShortenURLHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate short URL and save the mapping in Redis
-	shortURL := storage.GenerateShortURL()
+	shortURL := storage.GenerateShortURL(req.LongURL)
 	err := storage.SaveURLWithExpiry(shortURL, req.LongURL, 24*time.Hour) // Expires in 24 hours
 	if err != nil {
 		http.Error(w, "Failed to save URL", http.StatusInternalServerError)
