@@ -10,7 +10,7 @@ import (
 
 func main() {
 	// Initialize in-memory storage
-	storage.InitRedis()
+	storage.InitRedisPrd()
 
 	// Define routes
 	http.HandleFunc("/shorten", handlers.ShortenURLHandler) // POST: Create a short URL
