@@ -1,0 +1,29 @@
+# Binaries for programs and plugins
+# Redis data files
+data/
+
+# Logs and databases
+*.log
+*.db
+*.rdb
+
+# Output files
+*.out
+*.o
+
+# Go specific
+*.test
+*.mod
+*.sum
+
+# IDE/editor settings
+.idea/
+.vscode/
+*.swp
+
+# Docker-related files
+.env
+
+# System files
+.DS_Store
+Thumbs.db
