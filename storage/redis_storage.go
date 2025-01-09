@@ -47,12 +47,6 @@ func InitRedisPrd() {
 	InitRedis(client)
 }
 
-// SaveURL stores the mapping of short URL to long URL in Redis
-func SaveURL(shortURL, longURL string) error {
-	ctx := context.Background()
-	return rdb.Set(ctx, shortURL, longURL, 0).Err()
-}
-
 // SaveURLWithExpiry stores the mapping with a TTL
 func SaveURLWithExpiry(shortURL, longURL string, ttl time.Duration) error {
 	ctx := context.Background()

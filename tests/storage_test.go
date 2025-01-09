@@ -2,7 +2,7 @@ package tests
 
 import (
 	"testing"
-
+	"time"
 	"TinyWiny/storage"
 
 	"github.com/go-redis/redismock/v9"
@@ -20,11 +20,11 @@ func TestSaveAndGetURL(t *testing.T) {
 	short := "http://xmlp.com"
 	long := "http:example.com"
 
-	// Expect the SaveURL operation
-	mock.ExpectSet(short, long, 0).SetVal("OK")
+	// Expect the SaveURLWithExpiry operation
+	mock.ExpectSet(short, long, time.Hour*24).SetVal("OK")
 
-	// Test SaveURL
-	err := storage.SaveURL(short, long)
+	// Test SaveURLWithExpiry
+	err := storage.SaveURLWithExpiry(short, long, time.Hour*24)
 	assert.NoError(t, err)
 
 	// Expect the GetOriginalURL operation
