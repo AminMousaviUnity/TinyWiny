@@ -12,84 +12,87 @@ import (
 	"TinyWiny/storage"
 
 	"github.com/go-redis/redismock/v9"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestShortenURLHandler(t *testing.T) {
-	// Create a mock Redis client
+func setupMockRedis() (redismock.ClientMock, *redis.Client) {
 	mockRedis, mock := redismock.NewClientMock()
-	storage.InitRedis(mockRedis)
+	storage.InitRedis(mockRedis) // Initialize Redis in your storage layer
+	return mock, mockRedis
+}
 
-	// Mock Redis behavior for SaveURLWithExpiry
+func createRequest(t *testing.T, method, url string, body interface{}) *http.Request {
+	var reqBody bytes.Buffer
+	if body != nil {
+		if err := json.NewEncoder(&reqBody).Encode(body); err != nil {
+			t.Fatalf("Failed to encode request body: %v", err)
+		}
+	}
+
+	req, err := http.NewRequest(method, url, &reqBody)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	return req
+}
+
+func TestShortenURLHandler(t *testing.T) {
+	mock, _ := setupMockRedis()
+
 	short := "http://xmpl.com"
 	long := "http://example.com"
 	mock.ExpectSet(short, long, 24*time.Hour).SetVal("OK")
 
-	// Prepare the request payload
-	reqBody, err := json.Marshal(handlers.ShortenURLRequest{LongURL: long})
-	if err != nil {
-		t.Fatalf("Could not marshal request body: %v", err)
-	}
-
-	// Create an HTTP POST request
-	req, err := http.NewRequest("POST", "/shorten", bytes.NewBuffer(reqBody))
-	if err != nil {
-		t.Fatalf("Could not create request: %v", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Record the response
+	req := createRequest(t, "POST", "/shorten", handlers.ShortenURLRequest{LongURL: long})
 	rr := httptest.NewRecorder()
-	t.Log("Response Body:", rr.Body.String())
 	handler := http.HandlerFunc(handlers.ShortenURLHandler)
 	handler.ServeHTTP(rr, req)
 
-	// Check response code
-	assert.Equal(t, http.StatusCreated, rr.Code, "Handler returned wrong status code")
+	assert.Equal(t, http.StatusCreated, rr.Code, "Unexpected status code")
 
-	// Parse the response body
 	var resp handlers.ShortenURLResponse
-	err = json.NewDecoder(rr.Body).Decode(&resp)
-	if err != nil {
-		t.Fatalf("Could not decode response: %v", err)
-	}
+	assert.NoError(t, json.NewDecoder(rr.Body).Decode(&resp), "Failed to decode response")
 
-	// Check the short URL in the response
 	expectedShortURL := "http://localhost:8888/" + short
-	assert.Equal(t, expectedShortURL, resp.ShortURL, "Response contains incorrect short URL")
+	assert.Equal(t, expectedShortURL, resp.ShortURL, "Incorrect short URL in response")
 
-	// Verify expectations
-	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.NoError(t, mock.ExpectationsWereMet(), "Redis expectations were not met")
 }
 
 func TestRedirectHandler(t *testing.T) {
-	// Create a mock Redis client
-	mockRedis, mock := redismock.NewClientMock()
-	storage.InitRedis(mockRedis)
+	mock, _ := setupMockRedis()
 
-	// Mock Redis behavior for GetOriginalURL
 	short := "http://xmpl.com"
 	long := "http://example.com"
 	mock.ExpectGet(short).SetVal(long)
 
-	// Create a request to the short URL
-	req, err := http.NewRequest("GET", "/"+short, nil)
-	if err != nil {
-		t.Fatalf("Could not create request: %v", err)
-	}
-
-	// Record the response
+	req := createRequest(t, "GET", "/"+short, nil)
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(handlers.RedirectHandler)
 	handler.ServeHTTP(rr, req)
 
-	// Check response code
-	assert.Equal(t, http.StatusFound, rr.Code, "Handler returned wrong status code")
+	assert.Equal(t, http.StatusFound, rr.Code, "Unexpected status code")
+	assert.Equal(t, long, rr.Header().Get("Location"), "Incorrect redirect location")
 
-	// Check the redirect location
-	location := rr.Header().Get("Location")
-	assert.Equal(t, long, location, "Expected redirect to correct location")
+	assert.NoError(t, mock.ExpectationsWereMet(), "Redis expectations were not met")
+}
 
-	// Verify expectations
-	assert.NoError(t, mock.ExpectationsWereMet())
+func TestRedirectHandler_NotFound(t *testing.T) {
+	mock, _ := setupMockRedis()
+
+	short := "nonexistentCode"
+	mock.ExpectGet(short).RedisNil()
+
+	req := createRequest(t, "GET", "/"+short, nil)
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(handlers.RedirectHandler)
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNotFound, rr.Code, "Expected 404 for nonexistent code")
+	assert.Contains(t, rr.Body.String(), "URL not found", "Expected error message in response")
+
+	assert.NoError(t, mock.ExpectationsWereMet(), "Redis expectations were not met")
 }
