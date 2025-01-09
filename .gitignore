@@ -1,0 +1,19 @@
+# Output files
+*.out
+*.o
+
+# IDE/editor settings
+.idea/
+.vscode/
+*.swp
+
+# Docker-related files
+.env
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
