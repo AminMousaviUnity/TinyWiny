@@ -9,26 +9,42 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var rdb *redis.Client
+var rdb RedisClient
 
-func InitRedis() {
-	// Get Redis host and port from environment variables
+// RedisClient defines the interface for interacting with Redis
+type RedisClient interface {
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	Get(ctx context.Context, key string) *redis.StringCmd
+	Ping(ctx context.Context) *redis.StatusCmd
+}
+
+// InitRedis sets the global Redis client (used for both production and testing)
+func InitRedis(client RedisClient) {
+	rdb = client
+}
+
+// InitRedisPrd initializes the Redis client for prd use
+func InitRedisPrd() {
+	// Get Redis host and port from env variabels
 	redisHost := os.Getenv("REDIS_HOST")
 	redisPort := os.Getenv("REDIS_PORT")
 
 	if redisHost == "" || redisPort == "" {
-		log.Fatalf("Environment variabels REDIS_HOST or REDIS_PORT are not set")
+		log.Fatalf("Environment variables REDIS_HOST or REDIS_PORT are not set")
 	}
 
-	// Connect to Redis
-	rdb = redis.NewClient(&redis.Options{
+	// Create a read Redis client
+	client := redis.NewClient(&redis.Options{
 		Addr: redisHost + ":" + redisPort,
 	})
 
 	// Test the connection
-	if _, err := rdb.Ping(context.Background()).Result(); err != nil {
-		log.Fatalf("Could not connect to Redis: %v", err)
+	if _, err := client.Ping(context.Background()).Result(); err != nil {
+		log.Fatalf("could not connect to Redis: %v", err)
 	}
+
+	// Assign the real client
+	InitRedis(client)
 }
 
 // SaveURL stores the mapping of short URL to long URL in Redis
@@ -37,7 +53,7 @@ func SaveURL(shortURL, longURL string) error {
 	return rdb.Set(ctx, shortURL, longURL, 0).Err()
 }
 
-// SaveURLWithExpiry stores the mapping with a time-to-live (TTL)
+// SaveURLWithExpiry stores the mapping with a TTL
 func SaveURLWithExpiry(shortURL, longURL string, ttl time.Duration) error {
 	ctx := context.Background()
 	return rdb.Set(ctx, shortURL, longURL, ttl).Err()

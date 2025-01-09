@@ -3,6 +3,7 @@ package handlers
 import (
 	"TinyWiny/storage"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 )
@@ -32,6 +33,7 @@ func ShortenURLHandler(w http.ResponseWriter, r *http.Request) {
 	shortURL := storage.GenerateShortURL(req.LongURL)
 	err := storage.SaveURLWithExpiry(shortURL, req.LongURL, 24*time.Hour) // Expires in 24 hours
 	if err != nil {
+		log.Printf("Error saving URL: %v", err) // Add this line
 		http.Error(w, "Failed to save URL", http.StatusInternalServerError)
 		return
 	}
