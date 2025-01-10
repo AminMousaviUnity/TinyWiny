@@ -1,4 +1,4 @@
-package tests
+package handlers
 
 import (
 	"bytes"
@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"TinyWiny/handlers"
-	"TinyWiny/storage"
+	"github.com/aminmousaviunity/TinyWiny/internal/http_handlers"
+	"github.com/aminmousaviunity/TinyWiny/internal/storage"
 
 	"github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/assert"
