@@ -1,12 +1,14 @@
 package handlers
 
 import (
-	"github.com/aminmousaviunity/TinyWiny/internal/storage"
-	"github.com/aminmousaviunity/TinyWiny/internal/models"
 	"encoding/json"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/aminmousaviunity/TinyWiny/internal/models"
+	"github.com/aminmousaviunity/TinyWiny/internal/services"
+	"github.com/aminmousaviunity/TinyWiny/internal/storage"
 )
 
 type ShortenURLRequest struct {
@@ -31,7 +33,7 @@ func ShortenURLHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate short URL and save the mapping in Redis
-	shortURL := storage.GenerateShortURL(req.LongURL)
+	shortURL := services.GenerateShortURL(req.LongURL)
 	err := storage.SaveURLWithExpiry(shortURL, req.LongURL, 24*time.Hour) // Expires in 24 hours
 	if err != nil {
 		log.Printf("Error saving URL: %v", err) // Add this line

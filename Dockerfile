@@ -14,7 +14,7 @@ RUN go mod tidy
 COPY . .
 
 # Build the Go application
-RUN go build -o main .
+RUN go build -o main ./cmd
 
 # Use a lightweight image for the final container
 FROM debian:bookworm-slim
