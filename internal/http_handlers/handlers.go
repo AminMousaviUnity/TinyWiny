@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"TinyWiny/storage"
+	"github.com/aminmousaviunity/TinyWiny/internal/storage"
+	"github.com/aminmousaviunity/TinyWiny/internal/models"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -23,7 +24,7 @@ func ShortenURLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req ShortenURLRequest
+	var req models.ShortenURLRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.LongURL == "" {
 		http.Error(w, "Invalid JSON or missing long_url field", http.StatusBadRequest)
 		return
@@ -39,7 +40,7 @@ func ShortenURLHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Respond with the short URL
-	resp := ShortenURLResponse{ShortURL: "http://localhost:8888/" + shortURL}
+	resp := models.ShortenURLResponse{ShortURL: "http://localhost:8888/" + shortURL}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(resp)

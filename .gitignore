@@ -1,6 +1,10 @@
 # Binaries for programs and plugins
-# Redis data files
-./data/
+# Ignore Redis database dumps
+./redis/*.rdb
+
+# Ignore .env file
+.env
+
 
 # Logs and databases
 *.log

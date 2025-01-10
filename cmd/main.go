@@ -1,14 +1,20 @@
 package main
 
 import (
-    "TinyWiny/handlers"
-    "TinyWiny/storage"
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/aminmousaviunity/TinyWiny/internal/http_handlers"
+	"github.com/aminmousaviunity/TinyWiny/internal/storage"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
 	// Initialize in-memory storage
 	storage.InitRedisPrd()
 
