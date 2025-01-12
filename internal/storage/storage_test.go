@@ -1,9 +1,9 @@
 package storage
 
 import (
+	"context"
 	"testing"
 	"time"
-	"github.com/aminmousaviunity/TinyWiny/internal/storage"
 
 	"github.com/go-redis/redismock/v9"
 	"github.com/stretchr/testify/assert"
@@ -12,27 +12,24 @@ import (
 func TestSaveAndGetURL(t *testing.T) {
 	// Create a mock Redis client
 	mockRedis, mock := redismock.NewClientMock()
-	t.Logf("mockRedis type: %T", mockRedis)
+	storage := NewRedisStorage(mockRedis)
 
-	// Initialize the storage package with the mock Redis client
-	storage.InitRedis(mockRedis)
-
-	short := "http://xmlp.com"
-	long := "http:example.com"
+	short := "1MnZAnMm"
+	long := "http://google.com"
 
 	// Expect the SaveURLWithExpiry operation
 	mock.ExpectSet(short, long, time.Hour*24).SetVal("OK")
 
 	// Test SaveURLWithExpiry
-	err := storage.SaveURLWithExpiry(short, long, time.Hour*24)
+	ctx := context.Background()
+	err := storage.SaveURLWithExpiry(ctx, short, long, time.Hour*24) // Call on the storage instance
 	assert.NoError(t, err)
 
 	// Expect the GetOriginalURL operation
 	mock.ExpectGet(short).SetVal(long)
 
 	// Test GetOriginalURL
-	result, exists := storage.GetOriginalURL(short)
-
+	result, exists := storage.GetOriginalURL(ctx, short) // Call on the storage instance
 	assert.True(t, exists, "Expected URL to exist for short code")
 	assert.Equal(t, long, result, "Expected long URL to match")
 
@@ -43,9 +40,7 @@ func TestSaveAndGetURL(t *testing.T) {
 func TestGetOriginalURL_NotFound(t *testing.T) {
 	// Create a mock Redis client
 	mockRedis, mock := redismock.NewClientMock()
-
-	// Initialize the storage package with the mock Redis client
-	storage.InitRedis(mockRedis)
+	storage := NewRedisStorage(mockRedis) // Correctly initialize the RedisStorage instance
 
 	short := "http://unknown.com" // A short URL that doesn't exist
 
@@ -53,7 +48,8 @@ func TestGetOriginalURL_NotFound(t *testing.T) {
 	mock.ExpectGet(short).RedisNil()
 
 	// Test GetOriginalURL
-	_, exists := storage.GetOriginalURL(short)
+	ctx := context.Background()
+	_, exists := storage.GetOriginalURL(ctx, short) // Call on the storage instance
 	assert.False(t, exists, "Expected URL to not exist for unknown short code")
 
 	// Verify expectations

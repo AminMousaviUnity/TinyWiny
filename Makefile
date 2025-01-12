@@ -1,8 +1,10 @@
-.PHONY: build tinywiny down logs
+.PHONY: build build-prd tinywiny down logs
 
 # Build the Docker images
 build:
-	docker compose build
+	docker compose --env-file .env build
+build-prd:
+	docker compose --env-file .env.prd build
 
 # Start the application and Redis server in the background
 tinywiny:

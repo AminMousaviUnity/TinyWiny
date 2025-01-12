@@ -3,60 +3,35 @@ package storage
 import (
 	"context"
 	"log"
-	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
-var rdb RedisClient
-
-// RedisClient defines the interface for interacting with Redis
-type RedisClient interface {
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
-	Get(ctx context.Context, key string) *redis.StringCmd
-	Ping(ctx context.Context) *redis.StatusCmd
+// StorageInterface defines methods for interacting with storage
+type StorageInterface interface {
+	SaveURLWithExpiry(ctx context.Context, shortURL, longURL string, ttl time.Duration) error
+	GetOriginalURL(ctx context.Context, shortURL string) (string, bool)
 }
 
-// InitRedis sets the global Redis client (used for both production and testing)
-func InitRedis(client RedisClient) {
-	rdb = client
+// RedisStorage is the concrete implementation of StorageInterface
+type RedisStorage struct {
+	Client *redis.Client
 }
 
-// InitRedisPrd initializes the Redis client for prd use
-func InitRedisPrd() {
-	// Get Redis host and port from env variabels
-	redisHost := os.Getenv("REDIS_HOST")
-	redisPort := os.Getenv("REDIS_PORT")
-
-	if redisHost == "" || redisPort == "" {
-		log.Fatalf("Environment variables REDIS_HOST or REDIS_PORT are not set")
-	}
-
-	// Create a read Redis client
-	client := redis.NewClient(&redis.Options{
-		Addr: redisHost + ":" + redisPort,
-	})
-
-	// Test the connection
-	if _, err := client.Ping(context.Background()).Result(); err != nil {
-		log.Fatalf("could not connect to Redis: %v", err)
-	}
-
-	// Assign the real client
-	InitRedis(client)
+// NewRedisStorage creates a new RedisStorage instance
+func NewRedisStorage(client *redis.Client) *RedisStorage {
+	return &RedisStorage{Client: client}
 }
 
 // SaveURLWithExpiry stores the mapping with a TTL
-func SaveURLWithExpiry(shortURL, longURL string, ttl time.Duration) error {
-	ctx := context.Background()
-	return rdb.Set(ctx, shortURL, longURL, ttl).Err()
+func (s *RedisStorage) SaveURLWithExpiry(ctx context.Context, shortURL, longURL string, ttl time.Duration) error {
+	return s.Client.Set(ctx, shortURL, longURL, ttl).Err()
 }
 
-// GetOriginalURL retrieves the long URL for a given short URL from Redis
-func GetOriginalURL(shortURL string) (string, bool) {
-	ctx := context.Background()
-	longURL, err := rdb.Get(ctx, shortURL).Result()
+// GetOriginalURL retrieves the long URL for a given short URL
+func (s *RedisStorage) GetOriginalURL(ctx context.Context, shortURL string) (string, bool) {
+	longURL, err := s.Client.Get(ctx, shortURL).Result()
 	if err == redis.Nil {
 		return "", false
 	} else if err != nil {

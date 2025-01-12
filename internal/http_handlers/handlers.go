@@ -11,30 +11,39 @@ import (
 	"github.com/aminmousaviunity/TinyWiny/internal/storage"
 )
 
-type ShortenURLRequest struct {
-	LongURL string `json:"long_url"`
+// Handlers struct for dependency injection
+type Handlers struct {
+	BaseURL  string
+	Storage  storage.StorageInterface
+	Services services.ServiceInterface
 }
 
-type ShortenURLResponse struct {
-	ShortURL string `json:"short_url"`
+// NewHandlers creates a new Handlers instance
+func NewHandlers(baseURL string, storage storage.StorageInterface, services services.ServiceInterface) *Handlers {
+	return &Handlers{
+		BaseURL:  baseURL,
+		Storage:  storage,
+		Services: services,
+	}
 }
 
 // ShortenURLHandler handles POST requests to create a short URL
-func ShortenURLHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) ShortenURLHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Decode the request body
 	var req models.ShortenURLRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.LongURL == "" {
 		http.Error(w, "Invalid JSON or missing long_url field", http.StatusBadRequest)
 		return
 	}
 
-	// Generate short URL and save the mapping in Redis
-	shortURL := services.GenerateShortURL(req.LongURL)
-	err := storage.SaveURLWithExpiry(shortURL, req.LongURL, 24*time.Hour) // Expires in 24 hours
+	// Generate short URL and save it
+	shortURL := h.Services.GenerateShortURL(req.LongURL)
+	err := h.Storage.SaveURLWithExpiry(r.Context(), shortURL, req.LongURL, 24*time.Hour) // Expires in 24 hours
 	if err != nil {
 		log.Printf("Error saving URL: %v", err) // Add this line
 		http.Error(w, "Failed to save URL", http.StatusInternalServerError)
@@ -42,19 +51,19 @@ func ShortenURLHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Respond with the short URL
-	resp := models.ShortenURLResponse{ShortURL: "http://localhost:8888/" + shortURL}
+	resp := models.ShortenURLResponse{ShortURL: h.BaseURL + "/" + shortURL}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(resp)
 }
 
 // RedirectHandler handles GET requests to redirect to the original URL
-func RedirectHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	// Extract short URL from the path
 	shortURL := r.URL.Path[1:]
 
 	// Lookup the original URL in Redis
-	longURL, exists := storage.GetOriginalURL(shortURL)
+	longURL, exists := h.Storage.GetOriginalURL(r.Context(), shortURL)
 	if !exists {
 		http.Error(w, "Short URL not found", http.StatusNotFound)
 		return
