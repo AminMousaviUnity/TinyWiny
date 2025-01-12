@@ -18,3 +18,15 @@ services:
     volumes:
       - ./data:/data
     command: ["redis-server", "--dir", "/data", "--dbfilename", "url_database.rdb"]
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    command: ["go", "test", "./...", "-v"]
+    env_file:
+      - .env
+    depends_on:
+      - app
+      - redis

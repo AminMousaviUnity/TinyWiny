@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/aminmousaviunity/TinyWiny/internal/models"
 	"github.com/aminmousaviunity/TinyWiny/internal/services"
 	"github.com/aminmousaviunity/TinyWiny/internal/storage"
+	"github.com/redis/go-redis/v9"
 )
 
 // Handlers struct for dependency injection
@@ -63,9 +65,13 @@ func (h *Handlers) RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	shortURL := r.URL.Path[1:]
 
 	// Lookup the original URL in Redis
-	longURL, exists := h.Storage.GetOriginalURL(r.Context(), shortURL)
-	if !exists {
+	longURL, err := h.Storage.GetOriginalURL(r.Context(), shortURL)
+	if errors.Is(err, redis.Nil) { // Redis-specific "not found" error
 		http.Error(w, "Short URL not found", http.StatusNotFound)
+		return
+	} else if err != nil { // Handle other Redis errors
+		log.Printf("Redis error: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 

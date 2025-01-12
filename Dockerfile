@@ -17,7 +17,7 @@ COPY . .
 RUN go build -o main ./cmd
 
 # Use a lightweight image for the final container
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim as runtime
 
 # Set the working directory for the runtime container
 WORKDIR /app
