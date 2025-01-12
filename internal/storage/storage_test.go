@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redismock/v9"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,15 +23,15 @@ func TestSaveAndGetURL(t *testing.T) {
 
 	// Test SaveURLWithExpiry
 	ctx := context.Background()
-	err := storage.SaveURLWithExpiry(ctx, short, long, time.Hour*24) // Call on the storage instance
-	assert.NoError(t, err)
+	err := storage.SaveURLWithExpiry(ctx, short, long, time.Hour*24)
+	assert.NoError(t, err, "Expected no error while saving URL")
 
 	// Expect the GetOriginalURL operation
 	mock.ExpectGet(short).SetVal(long)
 
 	// Test GetOriginalURL
-	result, exists := storage.GetOriginalURL(ctx, short) // Call on the storage instance
-	assert.True(t, exists, "Expected URL to exist for short code")
+	result, err := storage.GetOriginalURL(ctx, short)
+	assert.NoError(t, err, "Expected no error for existing URL")
 	assert.Equal(t, long, result, "Expected long URL to match")
 
 	// Verify expectations
@@ -40,7 +41,7 @@ func TestSaveAndGetURL(t *testing.T) {
 func TestGetOriginalURL_NotFound(t *testing.T) {
 	// Create a mock Redis client
 	mockRedis, mock := redismock.NewClientMock()
-	storage := NewRedisStorage(mockRedis) // Correctly initialize the RedisStorage instance
+	storage := NewRedisStorage(mockRedis)
 
 	short := "http://unknown.com" // A short URL that doesn't exist
 
@@ -49,8 +50,9 @@ func TestGetOriginalURL_NotFound(t *testing.T) {
 
 	// Test GetOriginalURL
 	ctx := context.Background()
-	_, exists := storage.GetOriginalURL(ctx, short) // Call on the storage instance
-	assert.False(t, exists, "Expected URL to not exist for unknown short code")
+	result, err := storage.GetOriginalURL(ctx, short)
+	assert.Equal(t, redis.Nil, err, "Expected redis.Nil for unknown short URL")
+	assert.Equal(t, "", result, "Expected result to be empty for unknown short URL")
 
 	// Verify expectations
 	assert.NoError(t, mock.ExpectationsWereMet())

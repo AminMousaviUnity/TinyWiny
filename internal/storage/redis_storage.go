@@ -11,7 +11,7 @@ import (
 // StorageInterface defines methods for interacting with storage
 type StorageInterface interface {
 	SaveURLWithExpiry(ctx context.Context, shortURL, longURL string, ttl time.Duration) error
-	GetOriginalURL(ctx context.Context, shortURL string) (string, bool)
+	GetOriginalURL(ctx context.Context, shortURL string) (string, error)
 }
 
 // RedisStorage is the concrete implementation of StorageInterface
@@ -30,13 +30,13 @@ func (s *RedisStorage) SaveURLWithExpiry(ctx context.Context, shortURL, longURL 
 }
 
 // GetOriginalURL retrieves the long URL for a given short URL
-func (s *RedisStorage) GetOriginalURL(ctx context.Context, shortURL string) (string, bool) {
+func (s *RedisStorage) GetOriginalURL(ctx context.Context, shortURL string) (string, error) {
 	longURL, err := s.Client.Get(ctx, shortURL).Result()
 	if err == redis.Nil {
-		return "", false
+		return "", redis.Nil
 	} else if err != nil {
 		log.Printf("Redis error: %v", err)
-		return "", false
+		return "", err
 	}
-	return longURL, true
+	return longURL, nil
 }

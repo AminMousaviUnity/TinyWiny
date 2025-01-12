@@ -3,6 +3,7 @@
 # Build the Docker images
 build:
 	docker compose --env-file .env build
+
 build-prd:
 	docker compose --env-file .env.prd build
 
@@ -17,3 +18,7 @@ down:
 # Show logs of both services
 logs:
 	docker compose logs -f
+
+# Run the tests
+tests: build
+	docker compose run --rm tests
